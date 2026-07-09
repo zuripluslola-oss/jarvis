@@ -56,6 +56,26 @@ prompt-cached system prompt, so multi-turn conversations stay fast and cheap.
 - `memory.py` — persistent memory file handling
 - `voice.py` — optional microphone input and text-to-speech output
 
+## Vendored agent toolkits
+
+Six community toolkits live in this repo as git submodules under `vendor/`,
+pinned at exact versions. Clone with them included:
+
+```bash
+git clone --recurse-submodules https://github.com/zuripluslola-oss/jarvis.git
+# or, in an existing clone:
+git submodule update --init --depth 1
+```
+
+| Toolkit | What it is | How it runs here |
+|---|---|---|
+| [superpowers](https://github.com/obra/superpowers) | Software-development methodology as composable Claude Code skills (TDD, debugging, code review, ...) | Its 14 skills are installed in `.claude/skills/` and load automatically in Claude Code sessions in this repo |
+| [ECC](https://github.com/affaan-m/ECC) | "Everything Claude Code" — a large agent-harness collection | 278 skills, 67 subagents, and 94 slash commands installed in `.claude/` |
+| [andrej-karpathy-skills](https://github.com/multica-ai/andrej-karpathy-skills) | Karpathy-inspired coding guidelines for Claude Code | Installed as the `karpathy-guidelines` skill; referenced from `CLAUDE.md` |
+| [Obsidian-CLI-skill](https://github.com/pablo-mano/Obsidian-CLI-skill) | Control Obsidian vaults from Claude Code | Installed as the `obsidian-cli` skill; activates when you have Obsidian (v1.12+) and its CLI on your machine |
+| [ruflo](https://github.com/ruvnet/ruflo) | AI agent orchestration platform (claude-flow v3) | CLI: `npx -y ruflo --help` (verified working, v3.25.6) |
+| [open-design](https://github.com/nexu-io/open-design) | Open-source "Claude Design" desktop app | Desktop GUI — run on your own machine with Node 24 + pnpm 10.33: see `vendor/open-design/QUICKSTART.md` |
+
 ## Safety notes
 
 - Shell commands are never run without your explicit approval.

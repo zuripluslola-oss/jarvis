@@ -1,0 +1,18 @@
+[submodule "vendor/superpowers"]
+	path = vendor/superpowers
+	url = https://github.com/obra/superpowers.git
+[submodule "vendor/ECC"]
+	path = vendor/ECC
+	url = https://github.com/affaan-m/ECC.git
+[submodule "vendor/open-design"]
+	path = vendor/open-design
+	url = https://github.com/nexu-io/open-design.git
+[submodule "vendor/ruflo"]
+	path = vendor/ruflo
+	url = https://github.com/ruvnet/ruflo.git
+[submodule "vendor/Obsidian-CLI-skill"]
+	path = vendor/Obsidian-CLI-skill
+	url = https://github.com/pablo-mano/Obsidian-CLI-skill.git
+[submodule "vendor/andrej-karpathy-skills"]
+	path = vendor/andrej-karpathy-skills
+	url = https://github.com/multica-ai/andrej-karpathy-skills.git
