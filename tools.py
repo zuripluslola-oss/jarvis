@@ -81,10 +81,13 @@ SERVER_TOOLS = [
 TOOL_DEFINITIONS = LOCAL_TOOLS + SERVER_TOOLS
 
 
-def _run_command(command: str) -> tuple[str, bool]:
-    print(f"\n\033[33mJarvis wants to run:\033[0m  {command}")
-    answer = input("Allow? [y/N] ").strip().lower()
-    if answer not in ("y", "yes"):
+def _terminal_confirm(command: str) -> bool:
+    print(f"\n\033[33mAssistant wants to run:\033[0m  {command}")
+    return input("Allow? [y/N] ").strip().lower() in ("y", "yes")
+
+
+def _run_command(command: str, confirm=None) -> tuple[str, bool]:
+    if not (confirm or _terminal_confirm)(command):
         return "The user declined to run this command.", True
     try:
         proc = subprocess.run(
@@ -100,8 +103,12 @@ def _run_command(command: str) -> tuple[str, bool]:
     return output, False
 
 
-def execute_tool(name: str, tool_input: dict) -> tuple[str, bool]:
-    """Execute a local tool. Returns (result_text, is_error)."""
+def execute_tool(name: str, tool_input: dict, confirm=None) -> tuple[str, bool]:
+    """Execute a local tool. Returns (result_text, is_error).
+
+    `confirm` optionally overrides the terminal y/N prompt for run_command
+    (used by the ESI web visualizer to confirm in the browser instead).
+    """
     try:
         if name == "get_current_datetime":
             now = datetime.now()

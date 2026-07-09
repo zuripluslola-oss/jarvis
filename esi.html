@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>E.S.I.</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; background: #04070c; overflow: hidden;
+    font-family: "Segoe UI", system-ui, sans-serif; color: #9fdcff; }
+  #orb { position: fixed; inset: 0; width: 100%; height: 100%; }
+  #name { position: fixed; top: 4vh; width: 100%; text-align: center;
+    letter-spacing: 1.2em; font-size: 15px; color: #58c9ff; text-indent: 1.2em;
+    text-shadow: 0 0 18px rgba(88,201,255,.8); }
+  #status { position: fixed; top: calc(4vh + 26px); width: 100%; text-align: center;
+    letter-spacing: .45em; font-size: 10px; color: #3d7ea6; text-indent: .45em; }
+  #log { position: fixed; left: 50%; bottom: 14vh; transform: translateX(-50%);
+    width: min(720px, 88vw); max-height: 30vh; overflow: hidden;
+    display: flex; flex-direction: column; justify-content: flex-end;
+    text-align: center; pointer-events: none; }
+  #log .you { color: #4a90b8; font-size: 13px; margin: 6px 0 2px; opacity: .85; }
+  #log .esi { color: #c9ecff; font-size: 16px; line-height: 1.55;
+    text-shadow: 0 0 12px rgba(88,201,255,.35); }
+  #bar { position: fixed; left: 50%; bottom: 5vh; transform: translateX(-50%);
+    width: min(640px, 90vw); display: flex; gap: 10px; }
+  #input { flex: 1; background: rgba(12,26,40,.75); border: 1px solid #14405e;
+    border-radius: 22px; padding: 12px 20px; color: #d7f1ff; font-size: 15px;
+    outline: none; backdrop-filter: blur(6px); }
+  #input:focus { border-color: #2b8fc9; box-shadow: 0 0 16px rgba(43,143,201,.35); }
+  button { width: 46px; height: 46px; border-radius: 50%; border: 1px solid #14405e;
+    background: rgba(12,26,40,.75); color: #58c9ff; font-size: 18px; cursor: pointer; }
+  button.on { border-color: #58c9ff; box-shadow: 0 0 18px rgba(88,201,255,.55); }
+</style>
+</head>
+<body>
+<canvas id="orb"></canvas>
+<div id="name">E · S · I</div>
+<div id="status">ONLINE</div>
+<div id="log"></div>
+<div id="bar">
+  <input id="input" placeholder="Speak or type to ESI..." autocomplete="off">
+  <button id="mic" title="voice input">&#127908;</button>
+  <button id="mute" title="toggle her voice">&#128266;</button>
+</div>
+<script>
+// ---------- visualizer ----------
+const canvas = document.getElementById('orb'), ctx = canvas.getContext('2d');
+let W, H; const resize = () => { W = canvas.width = innerWidth; H = canvas.height = innerHeight; };
+addEventListener('resize', resize); resize();
+
+let state = 'idle';          // idle | thinking | speaking | listening
+let amp = 0.15;              // eased amplitude
+const target = { idle: 0.15, listening: 0.45, thinking: 0.3, speaking: 0.95 };
+const speed  = { idle: 0.4,  listening: 0.9,  thinking: 3.2, speaking: 1.4 };
+
+function setState(s) { state = s;
+  document.getElementById('status').textContent =
+    { idle: 'ONLINE', thinking: 'PROCESSING', speaking: 'SPEAKING', listening: 'LISTENING' }[s];
+}
+
+let t = 0, last = performance.now();
+function draw(now) {
+  const dt = (now - last) / 1000; last = now;
+  t += dt * speed[state];
+  amp += (target[state] - amp) * Math.min(1, dt * 4);
+  ctx.clearRect(0, 0, W, H);
+  const cx = W / 2, cy = H / 2 - H * 0.04, R = Math.min(W, H) * 0.17;
+  const pulse = state === 'speaking' ? 0.5 + 0.5 * Math.abs(Math.sin(t * 5.3) * Math.sin(t * 2.1)) : 1;
+
+  // core glow
+  let g = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 2.4);
+  g.addColorStop(0, `rgba(120,220,255,${0.55 * amp * pulse + 0.12})`);
+  g.addColorStop(0.35, `rgba(40,140,210,${0.22 * amp + 0.05})`);
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+
+  // inner core
+  ctx.beginPath(); ctx.arc(cx, cy, R * 0.32 * (0.9 + 0.2 * amp * pulse), 0, 7);
+  ctx.fillStyle = `rgba(200,240,255,${0.75 + 0.25 * amp})`;
+  ctx.shadowColor = '#8fdcff'; ctx.shadowBlur = 40; ctx.fill(); ctx.shadowBlur = 0;
+
+  // radial waveform bars
+  const N = 96;
+  for (let i = 0; i < N; i++) {
+    const a = (i / N) * Math.PI * 2 + t * 0.25;
+    const n = Math.sin(i * 1.7 + t * 3) * Math.sin(i * 0.31 - t * 2.2);
+    const len = R * 0.28 * amp * pulse * (0.35 + Math.abs(n));
+    const r0 = R * 0.78;
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0);
+    ctx.lineTo(cx + Math.cos(a) * (r0 + len), cy + Math.sin(a) * (r0 + len));
+    ctx.strokeStyle = `rgba(110,205,255,${0.25 + 0.55 * Math.abs(n) * amp})`;
+    ctx.lineWidth = 2; ctx.stroke();
+  }
+
+  // rotating arc rings
+  [[1.18, 0.7, 1], [1.36, -0.45, 0.6], [1.6, 0.22, 0.35]].forEach(([m, dir, alpha], k) => {
+    ctx.beginPath();
+    const start = t * dir + k * 2.1;
+    ctx.arc(cx, cy, R * m, start, start + Math.PI * (0.55 + 0.35 * amp));
+    ctx.strokeStyle = `rgba(88,201,255,${alpha * (0.35 + 0.5 * amp)})`;
+    ctx.lineWidth = k === 0 ? 2.5 : 1.2; ctx.stroke();
+  });
+
+  requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+
+// ---------- voice out ----------
+let speakEnabled = true;
+function pickVoice() {
+  const vs = speechSynthesis.getVoices();
+  return vs.find(v => /female|samantha|zira|aria|libby|sonia/i.test(v.name))
+      || vs.find(v => v.lang.startsWith('en')) || vs[0];
+}
+function speak(text) {
+  if (!speakEnabled || !text.trim() || !('speechSynthesis' in window)) return;
+  const u = new SpeechSynthesisUtterance(text);
+  u.voice = pickVoice(); u.rate = 1.05; u.pitch = 1.1;
+  u.onstart = () => setState('speaking');
+  u.onend = () => setState('idle');
+  speechSynthesis.cancel(); speechSynthesis.speak(u);
+}
+document.getElementById('mute').onclick = e => {
+  speakEnabled = !speakEnabled; speechSynthesis.cancel();
+  e.currentTarget.classList.toggle('on', !speakEnabled);
+  e.currentTarget.innerHTML = speakEnabled ? '&#128266;' : '&#128263;';
+};
+
+// ---------- voice in ----------
+const micBtn = document.getElementById('mic');
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (!SR) micBtn.style.display = 'none';
+let rec = null;
+micBtn.onclick = () => {
+  if (rec) { rec.stop(); return; }
+  rec = new SR(); rec.lang = 'en-US';
+  micBtn.classList.add('on'); setState('listening');
+  rec.onresult = e => send(e.results[0][0].transcript);
+  rec.onend = () => { rec = null; micBtn.classList.remove('on'); if (state === 'listening') setState('idle'); };
+  rec.start();
+};
+
+// ---------- chat ----------
+const log = document.getElementById('log'), input = document.getElementById('input');
+function addLine(cls, text) {
+  const el = document.createElement('div'); el.className = cls; el.textContent = text;
+  log.appendChild(el);
+  while (log.children.length > 6) log.removeChild(log.firstChild);
+  return el;
+}
+input.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && input.value.trim()) { send(input.value.trim()); input.value = ''; }
+});
+
+async function send(message) {
+  addLine('you', message);
+  const esiLine = addLine('esi', '');
+  setState('thinking');
+  const resp = await fetch('/chat', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message }),
+  });
+  const reader = resp.body.getReader(), dec = new TextDecoder();
+  let buf = '', full = '';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    const parts = buf.split('\n\n'); buf = parts.pop();
+    for (const part of parts) {
+      if (!part.startsWith('data: ')) continue;
+      const ev = JSON.parse(part.slice(6));
+      if (ev.type === 'text') { full += ev.delta; esiLine.textContent = full; }
+      else if (ev.type === 'state') setState(ev.value);
+      else if (ev.type === 'tool') addLine('you', `[ ${ev.name} ]`);
+      else if (ev.type === 'confirm') {
+        const allow = confirm(`ESI wants to run:\n\n${ev.command}\n\nAllow?`);
+        fetch('/confirm', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: ev.id, allow }) });
+      }
+      else if (ev.type === 'error') { esiLine.textContent = `(${ev.message})`; setState('idle'); }
+      else if (ev.type === 'done') { speak(full); if (!speakEnabled) setState('idle'); }
+    }
+  }
+}
+</script>
+</body>
+</html>

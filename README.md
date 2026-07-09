@@ -23,6 +23,21 @@ Allow? [y/N] y
 ...
 ```
 
+## ESI — the visualizer
+
+ESI is Jarvis's counterpart: same brain, tools, and memory — but she lives
+in your browser with a glowing arc-reactor visualizer, speaks out loud, and
+listens to your mic.
+
+```bash
+python esi.py   # opens http://localhost:8765 — press F11 for full screen
+```
+
+The orb breathes when idle, spins while she thinks, and pulses while she
+speaks. Shell commands still require your approval (a browser dialog).
+Voice in/out uses the browser's built-in speech APIs — no extra installs
+(mic input works best in Chrome).
+
 ## Voice mode
 
 ```bash
