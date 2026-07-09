@@ -70,7 +70,7 @@ git submodule update --init --depth 1
 | Toolkit | What it is | How it runs here |
 |---|---|---|
 | [superpowers](https://github.com/obra/superpowers) | Software-development methodology as composable Claude Code skills (TDD, debugging, code review, ...) | Its 14 skills are installed in `.claude/skills/` and load automatically in Claude Code sessions in this repo |
-| [ECC](https://github.com/affaan-m/ECC) | "Everything Claude Code" — a large agent-harness collection | 278 skills, 67 subagents, and 94 slash commands installed in `.claude/` |
+| [ECC](https://github.com/affaan-m/ECC) | "Everything Claude Code" — a large agent-harness collection | 277 skills, 67 subagents, and 93 slash commands installed in `.claude/` |
 | [andrej-karpathy-skills](https://github.com/multica-ai/andrej-karpathy-skills) | Karpathy-inspired coding guidelines for Claude Code | Installed as the `karpathy-guidelines` skill; referenced from `CLAUDE.md` |
 | [Obsidian-CLI-skill](https://github.com/pablo-mano/Obsidian-CLI-skill) | Control Obsidian vaults from Claude Code | Installed as the `obsidian-cli` skill; activates when you have Obsidian (v1.12+) and its CLI on your machine |
 | [ruflo](https://github.com/ruvnet/ruflo) | AI agent orchestration platform (claude-flow v3) | CLI: `npx -y ruflo --help` (verified working, v3.25.6) |
