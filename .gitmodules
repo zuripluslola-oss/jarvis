@@ -16,3 +16,6 @@
 [submodule "vendor/andrej-karpathy-skills"]
 	path = vendor/andrej-karpathy-skills
 	url = https://github.com/multica-ai/andrej-karpathy-skills.git
+[submodule "vendor/voicebox"]
+	path = vendor/voicebox
+	url = https://github.com/jamiepine/voicebox.git
