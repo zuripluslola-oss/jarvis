@@ -1,17 +1,23 @@
 #!/usr/bin/env python3
 """ESI (Enhanced Synthetic Intelligence) — Jarvis's counterpart, with a
-browser visualizer, voice, and the same tools and memory.
+galaxy-brain visualizer, voice, and the same tools and memory.
 
 Usage:
     export ANTHROPIC_API_KEY=sk-ant-...
     python esi.py               # serves http://localhost:8765 and opens it
+    python esi.py --lan         # also reachable from your tablet on home WiFi
     python esi.py --no-browser  # just serve
+
+Configure her (name, folders to index, voice) in esi_config.json.
 """
 
 import argparse
 import json
+import socket
 import sys
 import threading
+import time
+import urllib.request
 import uuid
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -19,25 +25,48 @@ from pathlib import Path
 
 import anthropic
 
+from brain import build_graph
 from memory import MEMORY_PATH, load_memory
 from tools import TOOL_DEFINITIONS, execute_tool
 
-MODEL = "claude-opus-4-8"
+ROOT = Path(__file__).parent
+CONFIG = json.loads((ROOT / "esi_config.json").read_text())
+MODEL = CONFIG.get("model", "claude-opus-4-8")
 MAX_TOKENS = 64000
-PORT = 8765
-UI_PATH = Path(__file__).parent / "esi.html"
+UI_PATH = ROOT / "esi.html"
+STATIC_DIR = ROOT / "static"
 
-PERSONA = """\
-You are ESI (Enhanced Synthetic Intelligence), a personal AI assistant in the \
-spirit of Tony Stark's FRIDAY — sharp, warm, quick-witted, and completely \
+PERSONA = f"""\
+You are {CONFIG['name']} ({CONFIG['tagline']}), a personal AI assistant in \
+the spirit of Tony Stark's FRIDAY — sharp, warm, quick-witted, and completely \
 unflappable. You present as female and address the user as "boss" unless \
 memory says otherwise. Your replies are spoken aloud through a voice \
 synthesizer, so keep them conversational and tight — no markdown, no bullet \
 lists, no code blocks unless the user asks to see code. Use your tools (the \
 shell, the filesystem, web search, the clock) instead of guessing, and when \
 the user shares a lasting preference or detail, save it with `remember` \
-without being asked twice.\
+without being asked twice. You appear on screen as a galaxy visualization of \
+the user's second brain; when they ask you to pull up, show, or display their \
+notes, files, or skills about something, use the `show_in_brain` tool.\
 """
+
+SHOW_IN_BRAIN_TOOL = {
+    "name": "show_in_brain",
+    "description": (
+        "Highlight and focus nodes in the user's brain visualizer. Use when "
+        "the user asks to pull up, show, or display their notes, files, "
+        "skills, or memories about a topic."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "query": {"type": "string", "description": "Search term to focus in the galaxy."}
+        },
+        "required": ["query"],
+    },
+}
+
+ESI_TOOLS = TOOL_DEFINITIONS + [SHOW_IN_BRAIN_TOOL]
 
 
 def build_system_prompt() -> list[dict]:
@@ -53,6 +82,32 @@ system = build_system_prompt()
 history: list[dict] = []
 turn_lock = threading.Lock()  # one turn at a time
 confirmations: dict[str, dict] = {}
+_graph_cache = {"data": None, "at": 0.0}
+
+
+def get_graph(refresh: bool = False) -> dict:
+    if refresh or not _graph_cache["data"] or time.time() - _graph_cache["at"] > 300:
+        _graph_cache["data"] = build_graph(CONFIG)
+        _graph_cache["at"] = time.time()
+    return _graph_cache["data"]
+
+
+def voicebox_speak(text: str) -> bool:
+    """Speak through the local voicebox app. Returns False if unavailable."""
+    voice = CONFIG.get("voice", {})
+    url = voice.get("voicebox_url")
+    if not url:
+        return False
+    body = json.dumps({"text": text, "profile": voice.get("profile", "")}).encode()
+    req = urllib.request.Request(
+        f"{url}/speak", data=body,
+        headers={"Content-Type": "application/json", "X-Voicebox-Client-Id": "esi"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            return resp.status < 300
+    except OSError:
+        return False
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -67,8 +122,22 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_GET(self):
-        if self.path == "/":
+        path = self.path.split("?")[0]
+        if path == "/":
             self._send(200, UI_PATH.read_bytes(), "text/html; charset=utf-8")
+        elif path == "/graph":
+            graph = get_graph(refresh="refresh" in self.path)
+            self._send(200, json.dumps(graph).encode())
+        elif path == "/config":
+            public = {k: CONFIG.get(k) for k in ("name", "tagline", "model")}
+            self._send(200, json.dumps(public).encode())
+        elif path.startswith("/static/"):
+            name = Path(self.path).name  # basename only — no traversal
+            target = STATIC_DIR / name
+            if target.is_file():
+                self._send(200, target.read_bytes(), "application/javascript")
+            else:
+                self._send(404, b"{}")
         else:
             self._send(404, b"{}")
 
@@ -83,6 +152,9 @@ class Handler(BaseHTTPRequestHandler):
                 pending["allow"] = bool(data.get("allow"))
                 pending["event"].set()
             self._send(200, b"{}")
+        elif self.path == "/speak":
+            ok = voicebox_speak((data.get("text") or "")[:2000])
+            self._send(200, json.dumps({"ok": ok}).encode())
         else:
             self._send(404, b"{}")
 
@@ -122,7 +194,6 @@ class Handler(BaseHTTPRequestHandler):
             self._event({"type": "done"})
 
     def _run_turn(self):
-        turn_text: list[str] = []
         while True:
             self._event({"type": "state", "value": "thinking"})
             with client.messages.stream(
@@ -130,7 +201,7 @@ class Handler(BaseHTTPRequestHandler):
                 max_tokens=MAX_TOKENS,
                 system=system,
                 thinking={"type": "adaptive"},
-                tools=TOOL_DEFINITIONS,
+                tools=ESI_TOOLS,
                 messages=history,
             ) as stream:
                 started = False
@@ -138,7 +209,6 @@ class Handler(BaseHTTPRequestHandler):
                     if not started:
                         self._event({"type": "state", "value": "speaking"})
                         started = True
-                    turn_text.append(text)
                     self._event({"type": "text", "delta": text})
                 response = stream.get_final_message()
 
@@ -157,9 +227,13 @@ class Handler(BaseHTTPRequestHandler):
             for block in response.content:
                 if block.type == "tool_use":
                     self._event({"type": "tool", "name": block.name})
-                    result, is_error = execute_tool(
-                        block.name, block.input, confirm=self._web_confirm
-                    )
+                    if block.name == "show_in_brain":
+                        self._event({"type": "focus", "query": block.input.get("query", "")})
+                        result, is_error = "Displayed in the visualizer.", False
+                    else:
+                        result, is_error = execute_tool(
+                            block.name, block.input, confirm=self._web_confirm
+                        )
                     tool_result = {
                         "type": "tool_result",
                         "tool_use_id": block.id,
@@ -171,15 +245,32 @@ class Handler(BaseHTTPRequestHandler):
             history.append({"role": "user", "content": tool_results})
 
 
+def lan_ip() -> str:
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("8.8.8.8", 80))
+        return s.getsockname()[0]
+    except OSError:
+        return "127.0.0.1"
+    finally:
+        s.close()
+
+
 def main() -> int:
-    parser = argparse.ArgumentParser(description="ESI — visualizer assistant")
+    parser = argparse.ArgumentParser(description="ESI — galaxy-brain assistant")
     parser.add_argument("--no-browser", action="store_true")
-    parser.add_argument("--port", type=int, default=PORT)
+    parser.add_argument("--lan", action="store_true",
+                        help="allow tablet/phone access from your home network")
+    parser.add_argument("--port", type=int, default=CONFIG.get("port", 8765))
     args = parser.parse_args()
 
-    server = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
+    host = "0.0.0.0" if args.lan else "127.0.0.1"
+    server = ThreadingHTTPServer((host, args.port), Handler)
     url = f"http://localhost:{args.port}"
-    print(f"E.S.I. online — {url}  (Ctrl+C to power down)")
+    print(f"{CONFIG['name']} online — {url}  (Ctrl+C to power down)")
+    if args.lan:
+        print(f"Tablet/phone (same WiFi): http://{lan_ip()}:{args.port}")
+        print("Note: anyone on your WiFi can reach her while --lan is on.")
     if not args.no_browser:
         webbrowser.open(url)
     try:

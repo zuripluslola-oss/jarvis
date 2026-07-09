@@ -8,113 +8,300 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { height: 100%; background: #04070c; overflow: hidden;
     font-family: "Segoe UI", system-ui, sans-serif; color: #9fdcff; }
-  #orb { position: fixed; inset: 0; width: 100%; height: 100%; }
-  #name { position: fixed; top: 4vh; width: 100%; text-align: center;
-    letter-spacing: 1.2em; font-size: 15px; color: #58c9ff; text-indent: 1.2em;
-    text-shadow: 0 0 18px rgba(88,201,255,.8); }
-  #status { position: fixed; top: calc(4vh + 26px); width: 100%; text-align: center;
-    letter-spacing: .45em; font-size: 10px; color: #3d7ea6; text-indent: .45em; }
-  #log { position: fixed; left: 50%; bottom: 14vh; transform: translateX(-50%);
-    width: min(720px, 88vw); max-height: 30vh; overflow: hidden;
-    display: flex; flex-direction: column; justify-content: flex-end;
-    text-align: center; pointer-events: none; }
-  #log .you { color: #4a90b8; font-size: 13px; margin: 6px 0 2px; opacity: .85; }
-  #log .esi { color: #c9ecff; font-size: 16px; line-height: 1.55;
-    text-shadow: 0 0 12px rgba(88,201,255,.35); }
-  #bar { position: fixed; left: 50%; bottom: 5vh; transform: translateX(-50%);
-    width: min(640px, 90vw); display: flex; gap: 10px; }
-  #input { flex: 1; background: rgba(12,26,40,.75); border: 1px solid #14405e;
-    border-radius: 22px; padding: 12px 20px; color: #d7f1ff; font-size: 15px;
+  #graph { position: fixed; inset: 0; }
+  .panel { background: rgba(8,16,26,.82); border: 1px solid #12324a;
+    border-radius: 12px; backdrop-filter: blur(8px); }
+
+  /* left sidebar */
+  #side { position: fixed; top: 16px; left: 16px; width: 230px;
+    max-height: calc(100% - 32px); display: flex; flex-direction: column;
+    gap: 10px; padding: 14px; z-index: 5; }
+  #side h1 { font-size: 14px; letter-spacing: .18em; color: #d7f1ff; }
+  #counts { font-size: 11px; color: #4a7ea6; }
+  #search { width: 100%; background: rgba(10,24,38,.9); border: 1px solid #14405e;
+    border-radius: 8px; padding: 8px 12px; color: #d7f1ff; font-size: 13px; outline: none; }
+  #search:focus { border-color: #2b8fc9; }
+  .label { font-size: 10px; letter-spacing: .2em; color: #3d7ea6; margin-top: 4px; }
+  #inspector { font-size: 12px; line-height: 1.5; color: #8fbcd8;
+    background: rgba(10,24,38,.6); border-radius: 8px; padding: 10px;
+    max-height: 30vh; overflow-y: auto; white-space: pre-wrap; }
+  #inspector b { color: #d7f1ff; }
+  #hubs { overflow-y: auto; font-size: 12px; }
+  #hubs div { display: flex; justify-content: space-between; padding: 4px 6px;
+    border-radius: 6px; cursor: pointer; }
+  #hubs div:hover { background: rgba(43,143,201,.15); }
+  #hubs span.n { color: #4a7ea6; }
+
+  /* top controls */
+  #controls { position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 8px; z-index: 5; }
+  #controls button { width: auto; height: auto; padding: 8px 18px; border-radius: 18px;
+    border: 1px solid #14405e; background: rgba(8,16,26,.82); color: #9fdcff;
+    font-size: 12px; letter-spacing: .1em; cursor: pointer; }
+  #controls button:hover { border-color: #2b8fc9; }
+
+  /* filter legend */
+  #legend { position: fixed; top: 16px; right: 16px; width: 150px; padding: 12px;
+    font-size: 12px; z-index: 5; }
+  #legend .label { margin: 0 0 6px; }
+  #legend div.row { display: flex; align-items: center; gap: 7px; padding: 3px 4px;
+    border-radius: 6px; cursor: pointer; }
+  #legend div.row:hover { background: rgba(43,143,201,.15); }
+  #legend div.row.off { opacity: .3; }
+  #legend i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  #legend span.n { margin-left: auto; color: #4a7ea6; }
+
+  /* orb HUD */
+  #hud { position: fixed; right: 16px; top: 260px; width: 180px; text-align: center; z-index: 5; }
+  #orb { width: 170px; height: 170px; }
+  #status { letter-spacing: .35em; font-size: 10px; color: #58c9ff; text-indent: .35em; margin-top: 2px; }
+  #modelbadge { display: inline-block; margin-top: 8px; font-size: 10px; letter-spacing: .15em;
+    color: #7fd4a8; border: 1px solid #1d4d3a; border-radius: 12px; padding: 4px 12px;
+    background: rgba(8,20,16,.8); }
+
+  /* chat */
+  #log { position: fixed; left: 50%; bottom: 12vh; transform: translateX(-50%);
+    width: min(700px, 80vw); max-height: 26vh; overflow: hidden; display: flex;
+    flex-direction: column; justify-content: flex-end; text-align: center;
+    pointer-events: none; z-index: 5; }
+  #log .you { color: #4a90b8; font-size: 13px; margin: 6px 0 2px; }
+  #log .esi { color: #dff3ff; font-size: 15px; line-height: 1.5;
+    background: rgba(8,16,26,.75); border-radius: 12px; padding: 8px 14px;
+    text-shadow: 0 0 12px rgba(88,201,255,.3); }
+  #bar { position: fixed; left: 50%; bottom: 4vh; transform: translateX(-50%);
+    width: min(620px, 88vw); display: flex; gap: 10px; z-index: 5; }
+  #input { flex: 1; background: rgba(12,26,40,.85); border: 1px solid #14405e;
+    border-radius: 22px; padding: 12px 20px; color: #d7f1ff; font-size: 14px;
     outline: none; backdrop-filter: blur(6px); }
   #input:focus { border-color: #2b8fc9; box-shadow: 0 0 16px rgba(43,143,201,.35); }
-  button { width: 46px; height: 46px; border-radius: 50%; border: 1px solid #14405e;
-    background: rgba(12,26,40,.75); color: #58c9ff; font-size: 18px; cursor: pointer; }
-  button.on { border-color: #58c9ff; box-shadow: 0 0 18px rgba(88,201,255,.55); }
+  #bar button { width: 44px; height: 44px; border-radius: 50%; border: 1px solid #14405e;
+    background: rgba(12,26,40,.85); color: #58c9ff; font-size: 17px; cursor: pointer; }
+  #bar button.on { border-color: #58c9ff; box-shadow: 0 0 18px rgba(88,201,255,.55); }
 </style>
 </head>
 <body>
-<canvas id="orb"></canvas>
-<div id="name">E · S · I</div>
-<div id="status">ONLINE</div>
+<div id="graph"></div>
+
+<div id="side" class="panel">
+  <h1 id="brainname">E.S.I. BRAIN</h1>
+  <div id="counts">loading…</div>
+  <input id="search" placeholder="Search the brain..." autocomplete="off">
+  <div class="label">INSPECTOR</div>
+  <div id="inspector">Click a node to focus it — only that node and its
+connections light up. Ask ESI to "pull up" anything and she'll fly you there.</div>
+  <div class="label">TOP HUBS</div>
+  <div id="hubs"></div>
+</div>
+
+<div id="controls">
+  <button id="fit">⊙ Fit</button>
+  <button id="dim">2D</button>
+  <button id="refresh" title="re-index the brain">↻</button>
+</div>
+
+<div id="legend" class="panel"><div class="label">FILTER</div></div>
+
+<div id="hud">
+  <canvas id="orb" width="170" height="170"></canvas>
+  <div id="status">ONLINE</div><br>
+  <span id="modelbadge">◆ …</span>
+</div>
+
 <div id="log"></div>
 <div id="bar">
   <input id="input" placeholder="Speak or type to ESI..." autocomplete="off">
   <button id="mic" title="voice input">&#127908;</button>
   <button id="mute" title="toggle her voice">&#128266;</button>
 </div>
-<script>
-// ---------- visualizer ----------
-const canvas = document.getElementById('orb'), ctx = canvas.getContext('2d');
-let W, H; const resize = () => { W = canvas.width = innerWidth; H = canvas.height = innerHeight; };
-addEventListener('resize', resize); resize();
 
-let state = 'idle';          // idle | thinking | speaking | listening
-let amp = 0.15;              // eased amplitude
+<script src="/static/3d-force-graph.min.js"></script>
+<script src="/static/force-graph.min.js"></script>
+<script>
+const COLORS = { core:'#ffffff', toolkit:'#a78bfa', skill:'#4da3ff', agent:'#f472b6',
+  command:'#fbbf24', hub:'#fb923c', folder:'#c2762b', note:'#34d399',
+  file:'#5a6b80', memory:'#2dd4bf' };
+const TYPE_LABEL = { core:'Core', toolkit:'Toolkits', skill:'Skills', agent:'Agents',
+  command:'Commands', hub:'Hubs', folder:'Folders', note:'Notes', file:'Files', memory:'Memories' };
+
+let data = { nodes: [], links: [] };
+let Graph = null, is3D = !location.search.includes('2d');
+const hidden = new Set();
+let selected = null, neighbors = new Set();
+
+// ---------- graph ----------
+function nodeColor(n) {
+  const c = COLORS[n.type] || '#888';
+  if (!selected) return c;
+  return (n.id === selected.id || neighbors.has(n.id)) ? c : 'rgba(70,90,110,0.18)';
+}
+function linkColor(l) {
+  if (!selected) return 'rgba(80,200,160,0.16)';
+  const s = l.source.id ?? l.source, t = l.target.id ?? l.target;
+  return (s === selected.id || t === selected.id) ? 'rgba(120,230,190,0.7)' : 'rgba(70,90,110,0.05)';
+}
+function filtered() {
+  const nodes = data.nodes.filter(n => !hidden.has(n.type));
+  const ids = new Set(nodes.map(n => n.id));
+  const links = data.links.map(l => ({ source: l.source.id ?? l.source, target: l.target.id ?? l.target }))
+    .filter(l => ids.has(l.source) && ids.has(l.target));
+  return { nodes, links };
+}
+function makeGraph() {
+  const el = document.getElementById('graph');
+  el.innerHTML = '';
+  Graph = (is3D ? ForceGraph3D()(el) : ForceGraph()(el))
+    .graphData(filtered())
+    .backgroundColor('#04070c')
+    .nodeVal('val')
+    .nodeLabel(n => `${n.name}  ·  ${n.type}`)
+    .nodeColor(nodeColor)
+    .linkColor(linkColor)
+    .onNodeClick(focusNode)
+    .onBackgroundClick(clearFocus);
+  if (is3D) Graph.linkOpacity(0.35).nodeOpacity(0.92);
+  document.getElementById('dim').textContent = is3D ? '2D' : '3D';
+}
+function repaint() { Graph.nodeColor(nodeColor).linkColor(linkColor); }
+
+function focusNode(n) {
+  selected = n;
+  neighbors = new Set();
+  for (const l of data.links) {
+    const s = l.source.id ?? l.source, t = l.target.id ?? l.target;
+    if (s === n.id) neighbors.add(t);
+    if (t === n.id) neighbors.add(s);
+  }
+  repaint();
+  document.getElementById('inspector').innerHTML =
+    `<b>${n.name}</b>  ·  ${n.type} · ${neighbors.size} links\n\n${(n.content || '').replace(/</g,'&lt;')}`;
+  if (is3D) {
+    const d = 160, r = 1 + d / Math.hypot(n.x||1, n.y||1, n.z||1);
+    Graph.cameraPosition({ x: n.x * r, y: n.y * r, z: n.z * r }, n, 1200);
+  } else {
+    Graph.centerAt(n.x, n.y, 800); Graph.zoom(4, 800);
+  }
+}
+function clearFocus() { selected = null; neighbors = new Set(); repaint(); }
+function focusQuery(q) {
+  q = q.toLowerCase();
+  const scored = data.nodes.filter(n => !hidden.has(n.type)).map(n => {
+    let s = 0;
+    if (n.name.toLowerCase().includes(q)) s = 2 + (n.val || 0) / 20;
+    else if ((n.content || '').toLowerCase().includes(q)) s = 1;
+    return [s, n];
+  }).filter(([s]) => s > 0).sort((a, b) => b[0] - a[0]);
+  if (scored.length) focusNode(scored[0][1]);
+  return scored.length;
+}
+
+async function loadGraph(refresh) {
+  data = await (await fetch('/graph' + (refresh ? '?refresh' : ''))).json();
+  document.getElementById('counts').textContent =
+    `${data.nodes.length} nodes · ${data.links.length} connections`;
+  // legend with counts
+  const byType = {};
+  for (const n of data.nodes) byType[n.type] = (byType[n.type] || 0) + 1;
+  const legend = document.getElementById('legend');
+  legend.innerHTML = '<div class="label">FILTER</div>';
+  for (const [type, count] of Object.entries(byType).sort((a, b) => b[1] - a[1])) {
+    const row = document.createElement('div');
+    row.className = 'row' + (hidden.has(type) ? ' off' : '');
+    row.innerHTML = `<i style="background:${COLORS[type]}"></i>${TYPE_LABEL[type] || type}<span class="n">${count}</span>`;
+    row.onclick = () => { hidden.has(type) ? hidden.delete(type) : hidden.add(type);
+      row.classList.toggle('off'); Graph.graphData(filtered()); };
+    legend.appendChild(row);
+  }
+  // top hubs
+  const hubs = document.getElementById('hubs');
+  hubs.innerHTML = '';
+  [...data.nodes].sort((a, b) => (b.val || 0) - (a.val || 0)).slice(0, 8).forEach(n => {
+    const row = document.createElement('div');
+    row.innerHTML = `<span style="color:${COLORS[n.type]}">● ${n.name}</span><span class="n">${Math.round((n.val - 1) / .6)}</span>`;
+    row.onclick = () => focusNode(data.nodes.find(x => x.id === n.id));
+    hubs.appendChild(row);
+  });
+  makeGraph();
+}
+
+document.getElementById('fit').onclick = () => is3D ? Graph.zoomToFit(800) : Graph.zoomToFit(800, 40);
+document.getElementById('dim').onclick = () => { is3D = !is3D; makeGraph(); };
+document.getElementById('refresh').onclick = () => loadGraph(true);
+document.getElementById('search').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.value.trim()) focusQuery(e.target.value.trim());
+});
+fetch('/config').then(r => r.json()).then(c => {
+  document.getElementById('brainname').textContent = `${c.name} BRAIN`;
+  document.getElementById('modelbadge').textContent = `◆ ${c.model.replace('claude-', '').toUpperCase()}`;
+  document.title = c.name;
+});
+loadGraph(false);
+
+// ---------- orb ----------
+const canvas = document.getElementById('orb'), ctx = canvas.getContext('2d');
+let state = 'idle';
+let amp = 0.15;
 const target = { idle: 0.15, listening: 0.45, thinking: 0.3, speaking: 0.95 };
 const speed  = { idle: 0.4,  listening: 0.9,  thinking: 3.2, speaking: 1.4 };
-
 function setState(s) { state = s;
   document.getElementById('status').textContent =
     { idle: 'ONLINE', thinking: 'PROCESSING', speaking: 'SPEAKING', listening: 'LISTENING' }[s];
 }
-
 let t = 0, last = performance.now();
 function draw(now) {
   const dt = (now - last) / 1000; last = now;
   t += dt * speed[state];
   amp += (target[state] - amp) * Math.min(1, dt * 4);
+  const W = canvas.width, H = canvas.height, cx = W / 2, cy = H / 2, R = W * 0.27;
   ctx.clearRect(0, 0, W, H);
-  const cx = W / 2, cy = H / 2 - H * 0.04, R = Math.min(W, H) * 0.17;
   const pulse = state === 'speaking' ? 0.5 + 0.5 * Math.abs(Math.sin(t * 5.3) * Math.sin(t * 2.1)) : 1;
-
-  // core glow
-  let g = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 2.4);
-  g.addColorStop(0, `rgba(120,220,255,${0.55 * amp * pulse + 0.12})`);
-  g.addColorStop(0.35, `rgba(40,140,210,${0.22 * amp + 0.05})`);
+  let g = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 2.2);
+  g.addColorStop(0, `rgba(120,220,255,${0.5 * amp * pulse + 0.12})`);
   g.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-
-  // inner core
-  ctx.beginPath(); ctx.arc(cx, cy, R * 0.32 * (0.9 + 0.2 * amp * pulse), 0, 7);
+  ctx.beginPath(); ctx.arc(cx, cy, R * 0.4 * (0.9 + 0.2 * amp * pulse), 0, 7);
   ctx.fillStyle = `rgba(200,240,255,${0.75 + 0.25 * amp})`;
-  ctx.shadowColor = '#8fdcff'; ctx.shadowBlur = 40; ctx.fill(); ctx.shadowBlur = 0;
-
-  // radial waveform bars
-  const N = 96;
+  ctx.shadowColor = '#8fdcff'; ctx.shadowBlur = 26; ctx.fill(); ctx.shadowBlur = 0;
+  const N = 48;
   for (let i = 0; i < N; i++) {
     const a = (i / N) * Math.PI * 2 + t * 0.25;
     const n = Math.sin(i * 1.7 + t * 3) * Math.sin(i * 0.31 - t * 2.2);
-    const len = R * 0.28 * amp * pulse * (0.35 + Math.abs(n));
-    const r0 = R * 0.78;
+    const len = R * 0.4 * amp * pulse * (0.35 + Math.abs(n));
     ctx.beginPath();
-    ctx.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0);
-    ctx.lineTo(cx + Math.cos(a) * (r0 + len), cy + Math.sin(a) * (r0 + len));
+    ctx.moveTo(cx + Math.cos(a) * R * 0.72, cy + Math.sin(a) * R * 0.72);
+    ctx.lineTo(cx + Math.cos(a) * (R * 0.72 + len), cy + Math.sin(a) * (R * 0.72 + len));
     ctx.strokeStyle = `rgba(110,205,255,${0.25 + 0.55 * Math.abs(n) * amp})`;
-    ctx.lineWidth = 2; ctx.stroke();
+    ctx.lineWidth = 1.6; ctx.stroke();
   }
-
-  // rotating arc rings
-  [[1.18, 0.7, 1], [1.36, -0.45, 0.6], [1.6, 0.22, 0.35]].forEach(([m, dir, alpha], k) => {
+  [[1.05, 0.7, 1], [1.25, -0.45, 0.6]].forEach(([m, dir, alpha], k) => {
     ctx.beginPath();
     const start = t * dir + k * 2.1;
     ctx.arc(cx, cy, R * m, start, start + Math.PI * (0.55 + 0.35 * amp));
     ctx.strokeStyle = `rgba(88,201,255,${alpha * (0.35 + 0.5 * amp)})`;
-    ctx.lineWidth = k === 0 ? 2.5 : 1.2; ctx.stroke();
+    ctx.lineWidth = k === 0 ? 2 : 1; ctx.stroke();
   });
-
   requestAnimationFrame(draw);
 }
 requestAnimationFrame(draw);
 
-// ---------- voice out ----------
+// ---------- voice out: voicebox first, browser TTS fallback ----------
 let speakEnabled = true;
 function pickVoice() {
   const vs = speechSynthesis.getVoices();
   return vs.find(v => /female|samantha|zira|aria|libby|sonia/i.test(v.name))
       || vs.find(v => v.lang.startsWith('en')) || vs[0];
 }
-function speak(text) {
-  if (!speakEnabled || !text.trim() || !('speechSynthesis' in window)) return;
+async function speak(text) {
+  if (!speakEnabled || !text.trim()) return;
+  try {
+    const r = await (await fetch('/speak', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) })).json();
+    if (r.ok) {  // voicebox is playing on the computer
+      setState('speaking');
+      setTimeout(() => setState('idle'), Math.min(30000, text.split(/\s+/).length * 380));
+      return;
+    }
+  } catch (e) {}
+  if (!('speechSynthesis' in window)) return;
   const u = new SpeechSynthesisUtterance(text);
   u.voice = pickVoice(); u.rate = 1.05; u.pitch = 1.1;
   u.onstart = () => setState('speaking');
@@ -146,7 +333,7 @@ const log = document.getElementById('log'), input = document.getElementById('inp
 function addLine(cls, text) {
   const el = document.createElement('div'); el.className = cls; el.textContent = text;
   log.appendChild(el);
-  while (log.children.length > 6) log.removeChild(log.firstChild);
+  while (log.children.length > 4) log.removeChild(log.firstChild);
   return el;
 }
 input.addEventListener('keydown', e => {
@@ -155,7 +342,7 @@ input.addEventListener('keydown', e => {
 
 async function send(message) {
   addLine('you', message);
-  const esiLine = addLine('esi', '');
+  const esiLine = addLine('esi', '…');
   setState('thinking');
   const resp = await fetch('/chat', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -173,6 +360,7 @@ async function send(message) {
       const ev = JSON.parse(part.slice(6));
       if (ev.type === 'text') { full += ev.delta; esiLine.textContent = full; }
       else if (ev.type === 'state') setState(ev.value);
+      else if (ev.type === 'focus') focusQuery(ev.query);
       else if (ev.type === 'tool') addLine('you', `[ ${ev.name} ]`);
       else if (ev.type === 'confirm') {
         const allow = confirm(`ESI wants to run:\n\n${ev.command}\n\nAllow?`);

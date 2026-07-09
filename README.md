@@ -23,20 +23,45 @@ Allow? [y/N] y
 ...
 ```
 
-## ESI — the visualizer
+## ESI — the galaxy brain
 
-ESI is Jarvis's counterpart: same brain, tools, and memory — but she lives
-in your browser with a glowing arc-reactor visualizer, speaks out loud, and
-listens to your mic.
+ESI is Jarvis's counterpart: same brain, tools, and memory — but she lives in
+your browser as a full second-brain visualizer with voice.
 
 ```bash
-python esi.py   # opens http://localhost:8765 — press F11 for full screen
+python esi.py         # opens http://localhost:8765 — press F11 for full screen
+python esi.py --lan   # ALSO reachable from your tablet on the same WiFi
+                      # (prints the tablet URL; anyone on your WiFi can connect)
 ```
 
-The orb breathes when idle, spins while she thinks, and pulses while she
-speaks. Shell commands still require your approval (a browser dialog).
-Voice in/out uses the browser's built-in speech APIs — no extra installs
-(mic input works best in Chrome).
+**The galaxy** — every node is something she knows: your notes and files
+(green/grey), your 293 skills (blue), agents (pink), commands (yellow),
+toolkits (purple), and her memories (teal), all orbiting the ESI core.
+Click a node to focus it and read it in the inspector; search the brain from
+the sidebar; toggle **2D/3D** with one button (or open `/?2d` directly —
+handy on tablets); filter node types from the legend. Ask her to
+*"pull up my notes about X"* and she flies the camera there herself.
+
+**Feeding her brain** — edit `esi_config.json`:
+
+```json
+"brain": {
+  "include_skills": true,
+  "include_memory": true,
+  "folders": ["~/Documents/MyVault", "~/Projects"]
+}
+```
+
+Markdown `[[wikilinks]]` between notes become edges (Obsidian vaults work
+out of the box). Hit the ↻ button to re-index after adding files.
+
+**Her voice** — install [voicebox](https://github.com/jamiepine/voicebox)
+(desktop app, `vendor/voicebox`), create a voice profile named `ESI`, and she
+automatically speaks through it. Without voicebox she falls back to the
+browser's built-in voice. Mic input works best in Chrome.
+
+**The orb** (docked right) breathes when idle, spins while she thinks, and
+pulses while she speaks. Shell commands still require your approval.
 
 ## Voice mode
 

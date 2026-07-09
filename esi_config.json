@@ -1,0 +1,16 @@
+{
+  "name": "ESI",
+  "tagline": "Enhanced Synthetic Intelligence",
+  "port": 8765,
+  "model": "claude-opus-4-8",
+  "brain": {
+    "include_skills": true,
+    "include_memory": true,
+    "folders": [],
+    "max_files_per_folder": 400
+  },
+  "voice": {
+    "voicebox_url": "http://127.0.0.1:17493",
+    "profile": "ESI"
+  }
+}
