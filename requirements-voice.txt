@@ -1,0 +1,7 @@
+# Optional voice mode dependencies (python jarvis.py --voice)
+# PyAudio needs the PortAudio system library:
+#   macOS:  brew install portaudio
+#   Debian/Ubuntu: sudo apt-get install portaudio19-dev
+SpeechRecognition>=3.10
+pyttsx3>=2.90
+PyAudio>=0.2.13
