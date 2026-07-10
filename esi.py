@@ -13,7 +13,10 @@ Configure her (name, folders to index, voice) in esi_config.json.
 
 import argparse
 import json
+import os
+import shutil
 import socket
+import subprocess
 import sys
 import threading
 import time
@@ -77,12 +80,35 @@ def build_system_prompt() -> list[dict]:
     return [{"type": "text", "text": text, "cache_control": {"type": "ephemeral"}}]
 
 
+def resolve_engine() -> str:
+    """'api' bills per token via ANTHROPIC_API_KEY; 'claude-code' runs on the
+    Claude subscription through the locally installed claude CLI."""
+    engine = CONFIG.get("engine", "auto")
+    if engine == "auto":
+        if os.environ.get("ANTHROPIC_API_KEY"):
+            return "api"
+        if shutil.which("claude"):
+            return "claude-code"
+        return "api"
+    return engine
+
+
+ENGINE = resolve_engine()
 client = anthropic.Anthropic()
 system = build_system_prompt()
 history: list[dict] = []
 turn_lock = threading.Lock()  # one turn at a time
 confirmations: dict[str, dict] = {}
 _graph_cache = {"data": None, "at": 0.0}
+cli_session_id: str | None = None  # claude-code engine conversation thread
+
+CLI_PERSONA = (
+    PERSONA
+    + "\n\nYou are running inside Claude Code with its standard tools "
+    "(read-only file access and web search are allowed). For the morning "
+    "briefing, run: python3 -c \"from briefing import build_briefing; "
+    "t, e = build_briefing(); print(t)\""
+)
 
 
 def get_graph(refresh: bool = False) -> dict:
@@ -129,7 +155,8 @@ class Handler(BaseHTTPRequestHandler):
             graph = get_graph(refresh="refresh" in self.path)
             self._send(200, json.dumps(graph).encode())
         elif path == "/config":
-            public = {k: CONFIG.get(k) for k in ("name", "tagline", "model")}
+            public = {k: CONFIG.get(k) for k in ("name", "tagline")}
+            public["model"] = MODEL if ENGINE == "api" else "claude-code"
             self._send(200, json.dumps(public).encode())
         elif path.startswith("/static/"):
             name = Path(self.path).name  # basename only — no traversal
@@ -184,14 +211,73 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
 
         with turn_lock:
-            rollback = len(history)
-            history.append({"role": "user", "content": message})
-            try:
-                self._run_turn()
-            except Exception as exc:
-                del history[rollback:]  # drop the partial turn
-                self._event({"type": "error", "message": str(exc)})
+            if ENGINE == "claude-code":
+                try:
+                    self._run_turn_cli(message)
+                except Exception as exc:
+                    self._event({"type": "error", "message": str(exc)})
+            else:
+                rollback = len(history)
+                history.append({"role": "user", "content": message})
+                try:
+                    self._run_turn()
+                except Exception as exc:
+                    del history[rollback:]  # drop the partial turn
+                    self._event({"type": "error", "message": str(exc)})
             self._event({"type": "done"})
+
+    def _run_turn_cli(self, message: str):
+        """Run one turn through the local claude CLI (Claude subscription —
+        no API key). The CLI keeps the conversation via --resume."""
+        global cli_session_id
+        cmd = [
+            "claude", "-p", message,
+            "--output-format", "stream-json", "--verbose",
+            "--include-partial-messages",
+            "--append-system-prompt", CLI_PERSONA,
+            "--allowedTools", "Read,Glob,Grep,WebSearch,WebFetch,Bash(python3 -c *)",
+        ]
+        if cli_session_id:
+            cmd += ["--resume", cli_session_id]
+        self._event({"type": "state", "value": "thinking"})
+        # Clean env: if ESI was launched from inside a Claude Code terminal,
+        # inherited session vars would break --resume conversation chaining.
+        env = {k: v for k, v in os.environ.items() if not k.startswith("CLAUDE")}
+        proc = subprocess.Popen(
+            cmd, cwd=ROOT, env=env, text=True, stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+        started = False
+        noise = ""
+        for line in proc.stdout:
+            try:
+                ev = json.loads(line)
+            except ValueError:
+                noise = line.strip() or noise
+                continue
+            if ev.get("session_id"):
+                cli_session_id = ev["session_id"]
+            kind = ev.get("type")
+            if kind == "stream_event":
+                delta = ev.get("event", {}).get("delta", {})
+                if delta.get("type") == "text_delta":
+                    if not started:
+                        self._event({"type": "state", "value": "speaking"})
+                        started = True
+                    self._event({"type": "text", "delta": delta["text"]})
+            elif kind == "assistant":
+                for block in ev.get("message", {}).get("content", []):
+                    if block.get("type") == "tool_use":
+                        self._event({"type": "tool", "name": block.get("name", "?")})
+                    elif block.get("type") == "text" and block.get("text") and not started:
+                        # fallback when the CLI doesn't stream partial deltas
+                        self._event({"type": "state", "value": "speaking"})
+                        self._event({"type": "text", "delta": block["text"]})
+            elif kind == "result" and ev.get("is_error"):
+                self._event({"type": "error", "message": str(ev.get("result", "CLI error"))[:300]})
+        proc.wait()
+        if proc.returncode != 0 and not started:
+            self._event({"type": "error", "message": f"claude CLI failed: {noise[:300]}"})
 
     def _run_turn(self):
         while True:
@@ -267,7 +353,9 @@ def main() -> int:
     host = "0.0.0.0" if args.lan else "127.0.0.1"
     server = ThreadingHTTPServer((host, args.port), Handler)
     url = f"http://localhost:{args.port}"
+    brain = "API (pay per use)" if ENGINE == "api" else "Claude Code (your subscription)"
     print(f"{CONFIG['name']} online — {url}  (Ctrl+C to power down)")
+    print(f"Brain: {brain}")
     if args.lan:
         print(f"Tablet/phone (same WiFi): http://{lan_ip()}:{args.port}")
         print("Note: anyone on your WiFi can reach her while --lan is on.")

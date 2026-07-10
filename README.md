@@ -34,6 +34,16 @@ python esi.py --lan   # ALSO reachable from your tablet on the same WiFi
                       # (prints the tablet URL; anyone on your WiFi can connect)
 ```
 
+**Two brains, picked automatically:**
+- **No API key?** If [Claude Code](https://claude.com/claude-code) is installed
+  and logged in, ESI runs through it on your existing Claude subscription —
+  zero extra cost, no API key needed.
+- **API key set?** (`ANTHROPIC_API_KEY`) she uses the API directly — full
+  tool suite including camera-flying and web command approval.
+
+Force one or the other with `"engine": "api"` / `"engine": "claude-code"` in
+`esi_config.json` (default `"auto"`).
+
 **The galaxy** — every node is something she knows: your notes and files
 (green/grey), your 293 skills (blue), agents (pink), commands (yellow),
 toolkits (purple), and her memories (teal), all orbiting the ESI core.
