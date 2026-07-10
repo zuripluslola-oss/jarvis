@@ -110,6 +110,7 @@ connections light up. Ask ESI to "pull up" anything and she'll fly you there.</d
 <div id="log"></div>
 <div id="bar">
   <input id="input" placeholder="Speak or type to ESI..." autocomplete="off">
+  <button id="bell" title="morning briefing">&#128276;</button>
   <button id="mic" title="voice input">&#127908;</button>
   <button id="mute" title="toggle her voice">&#128266;</button>
 </div>
@@ -339,6 +340,7 @@ function addLine(cls, text) {
 input.addEventListener('keydown', e => {
   if (e.key === 'Enter' && input.value.trim()) { send(input.value.trim()); input.value = ''; }
 });
+document.getElementById('bell').onclick = () => send('Good morning ESI — give me my briefing.');
 
 async function send(message) {
   addLine('you', message);

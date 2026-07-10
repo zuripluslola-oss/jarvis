@@ -57,6 +57,15 @@ LOCAL_TOOLS = [
         },
     },
     {
+        "name": "morning_briefing",
+        "description": (
+            "Get today's calendar events and unread email from the user's "
+            "Google account (read-only). Use when the user says good morning, "
+            "asks for their briefing, or asks what's on today / in their inbox."
+        ),
+        "input_schema": {"type": "object", "properties": {}},
+    },
+    {
         "name": "run_command",
         "description": (
             "Run a shell command on the user's machine and return its output. "
@@ -119,6 +128,9 @@ def execute_tool(name: str, tool_input: dict, confirm=None) -> tuple[str, bool]:
             )
         if name == "remember":
             return remember_fact(tool_input["fact"]), False
+        if name == "morning_briefing":
+            from briefing import build_briefing
+            return build_briefing()
         if name == "read_file":
             path = Path(tool_input["path"]).expanduser()
             if not path.is_file():

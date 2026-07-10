@@ -63,6 +63,20 @@ browser's built-in voice. Mic input works best in Chrome.
 **The orb** (docked right) breathes when idle, spins while she thinks, and
 pulses while she speaks. Shell commands still require your approval.
 
+**Morning briefing (Gmail + Calendar)** — click the 🔔 or say
+*"good morning"* and she reads you today's events and unread mail.
+One-time setup:
+
+1. [console.cloud.google.com](https://console.cloud.google.com) → create a
+   project → enable the **Gmail API** and **Google Calendar API** → OAuth
+   consent screen (External, add yourself as test user) → Credentials →
+   **OAuth client ID → Desktop app** → Download JSON.
+2. Save the downloaded file next to `esi.py` as `credentials.json`
+   (gitignored — it never leaves your computer).
+3. First briefing opens a Google page — click **Allow**. Access is
+   read-only and revocable at
+   [myaccount.google.com/permissions](https://myaccount.google.com/permissions).
+
 ## Voice mode
 
 ```bash
